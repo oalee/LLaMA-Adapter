@@ -10,8 +10,14 @@ def Llama7B_adapter(args, **kwargs):
     llama_model_path = args.llama_model_path
     model_name = "7B"
 
-    checkpoint = torch.load(llama_model_path + model_name + "/consolidated.00.pth", map_location="cpu")
-    print(llama_model_path + model_name + "/consolidated.00.pth")
+    if args.resume != "":
+
+        checkpoint = torch.load(args.resume, map_location = "cpu")
+        #model_llama_adapter.load(w, strict=False)
+        print("Resumed from ", args.resume)
+    else:
+        checkpoint = torch.load(llama_model_path + model_name + "/consolidated.00.pth", map_location="cpu")
+        print(llama_model_path + model_name + "/consolidated.00.pth")
 
     with open(llama_model_path + model_name + "/params.json", "r") as f:
         params = json.loads(f.read())
@@ -42,6 +48,18 @@ def Llama7B_adapter(args, **kwargs):
         if "gate" in name or "adapter" in name:
             param.data = param.data.float()
             param.requires_grad = True
+
+    # if args.adapter_path, load_adapter
+
+    if hasattr(args, "adapter_path"):
+        adapter_path = args.adapter_path
+        if adapter_path != "":
+            adapter_data = torch.load(adapter_path, map_location="cpu")
+            model_llama_adapter.load_state_dict(
+                adapter_data, strict=False
+            )
+            print("Loaded adapter")
+    
 
     return model_llama_adapter
 

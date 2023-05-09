@@ -37,13 +37,16 @@ def train_one_epoch(
         if data_iter_step % accum_iter == 0:
             lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args)
 
+        examples = examples.to('cuda')
+        labels = labels.to('cuda')
+
         c_loss = model(examples, labels)
         loss = c_loss
         loss_value = loss.item()
         c_loss_value = c_loss.item()
 
         if not math.isfinite(loss_value):
-            print("Loss is {}, stopping training".format(loss_value))
+            print("Loss is {}, stopping training z".format(loss_value))
             sys.exit(1)
 
         loss /= accum_iter
@@ -52,7 +55,7 @@ def train_one_epoch(
         if (data_iter_step + 1) % accum_iter == 0:
             optimizer.zero_grad()
 
-        torch.cuda.synchronize()
+        # torch.cuda.synchronize()
 
         metric_logger.update(closs=c_loss_value)
 
@@ -100,6 +103,8 @@ def val_one_epoch(
         metric_logger.log_every(data_loader, print_freq, header)
     ):
 
+        examples = examples.to('cuda')
+        labels = labels.to('cuda')
         with torch.no_grad():
             c_loss = model(examples, labels)
         loss = c_loss

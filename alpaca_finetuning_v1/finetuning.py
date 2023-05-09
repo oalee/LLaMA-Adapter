@@ -72,6 +72,12 @@ class InstructionDataset(Dataset):
         example_mask = example_mask.float()
         label_mask = label_mask.float()
 
+        # to device, gpu
+
+        # example = example.to('cuda')
+        # labesl = lables.to('cuda')
+        # example_mask = example_mask.to('cuda')
+
         return example, labels, example_mask
 
 
@@ -143,12 +149,16 @@ def get_args_parser():
     parser.add_argument("--dist_on_itp", action="store_true")
     parser.add_argument("--dist_url", default="env://", help="url used to set up distributed training")
 
+    parser.add_argument('--distributed', default=False)
+
+    parser.add_argument('--adapter_path', default="")
+
     return parser
 
 
 def main(args):
 
-    misc.init_distributed_mode(args)
+    # misc.init_distributed_mode(args)
 
     print("job dir: {}".format(os.path.dirname(os.path.realpath(__file__))))
     print("{}".format(args).replace(", ", ",\n"))
@@ -172,7 +182,7 @@ def main(args):
     print(dataset_train)
     print(dataset_val)
 
-    if True:  # args.distributed:
+    if args.distributed:  # args.distributed:
         num_tasks = misc.get_world_size()
         global_rank = misc.get_rank()
         sampler_train = torch.utils.data.DistributedSampler(
@@ -186,6 +196,7 @@ def main(args):
         print("Sampler_train = %s" % str(sampler_train))
     else:
         sampler_train = torch.utils.data.RandomSampler(dataset_train)
+        global_rank = 0
 
     if global_rank == 0 and args.log_dir is not None:
         os.makedirs(args.log_dir, exist_ok=True)
@@ -204,7 +215,6 @@ def main(args):
 
     data_loader_val = torch.utils.data.DataLoader(
         dataset_val,
-        sampler=sampler_val,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         pin_memory=args.pin_mem,
